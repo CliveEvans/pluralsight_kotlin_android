@@ -1,15 +1,19 @@
 package com.github.cliveevans.notekeeper
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
+import com.google.android.material.snackbar.Snackbar
 
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 
 class MainActivity : AppCompatActivity() {
+
+    private val tag = this::class.simpleName
 
     private var notePosition = POSITION_NOT_SET
 
@@ -30,9 +34,14 @@ class MainActivity : AppCompatActivity() {
         if(notePosition != POSITION_NOT_SET) {
             displayNote()
         } else {
-            DataManager.notes.add(NoteInfo())
-            notePosition = DataManager.notes.lastIndex
+            createNewNote()
         }
+        Log.d(tag, "onCreate")
+    }
+
+    private fun createNewNote() {
+        DataManager.notes.add(NoteInfo())
+        notePosition = DataManager.notes.lastIndex
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -41,6 +50,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun displayNote() {
+        if(notePosition > DataManager.notes.lastIndex) {
+            showMessage("Note not found")
+            Log.e(tag, "Invalid note position $notePosition, max valid position ${DataManager.notes.lastIndex}")
+            return
+        }
+
+        Log.i(tag, "Displaying note for position $notePosition")
+
         val note = DataManager.notes[notePosition]
         textNoteTitle.setText(note.title)
         textNoteText.setText(note.text)
@@ -62,11 +79,19 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.action_settings -> true
             R.id.action_next -> {
-                moveNext()
+                if(notePosition < DataManager.notes.lastIndex) {
+                    moveNext()
+                } else {
+                    showMessage("No more notes")
+                }
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun showMessage(message: String) {
+        Snackbar.make(textNoteTitle, message, Snackbar.LENGTH_LONG).show()
     }
 
     private fun moveNext() {
@@ -89,6 +114,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         saveNote()
+        Log.d(tag, "onPause")
     }
 
     private fun saveNote() {
